@@ -1,5 +1,7 @@
 # adspay — the client
 
+[![tests](https://github.com/ivaldepablo/adspay/actions/workflows/test.yml/badge.svg)](https://github.com/ivaldepablo/adspay/actions/workflows/test.yml) [![npm](https://img.shields.io/npm/v/adspay.svg)](https://www.npmjs.com/package/adspay)
+
 **[adspay.fun](https://adspay.fun)** pays developers for the wait time of their AI coding agents. While Claude Code is thinking, a small sponsored line rides your status line; you earn **70% of the ad revenue** it generates (**85% for life** if you're one of the first 500 devices), paid in **USDC on Solana from $1** — any country, no minimums.
 
 This repository is the **client** — the only adspay code that runs on your machine. It is open source (MIT) on purpose: an ad network you can't inspect is an ad network you shouldn't trust. Read exactly what it does before you run it.
