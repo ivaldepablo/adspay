@@ -1,0 +1,31 @@
+{
+  "name": "adspay-vscode",
+  "displayName": "adspay — get paid for waiting",
+  "description": "Ads in your status bar while your AI agent thinks. 70% revenue share, instant USDC payouts on Solana.",
+  "version": "0.1.0",
+  "publisher": "adspay",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "adspay.openAd",
+        "title": "adspay: Open sponsored link"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.6.0"
+  }
+}

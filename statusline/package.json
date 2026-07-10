@@ -1,0 +1,25 @@
+{
+  "name": "adspay",
+  "version": "0.1.0",
+  "description": "Get paid in USDC for your Claude Code spinner time — 70% revenue share (85% for the first 500 devices), instant Solana payouts from $1.",
+  "type": "module",
+  "bin": {
+    "adspay": "bin/adspay.js"
+  },
+  "files": ["bin", "src", "README.md"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["claude-code", "statusline", "ads", "solana", "usdc", "ai-agent", "codex"],
+  "homepage": "https://adspay.fun",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivaldepablo/adspay.git",
+    "directory": "statusline"
+  },
+  "bugs": {
+    "url": "https://github.com/ivaldepablo/adspay/issues"
+  },
+  "author": "adspay.fun",
+  "license": "MIT"
+}
