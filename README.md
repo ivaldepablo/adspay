@@ -1,3 +1,5 @@
+<img src="assets/logo.jpg" width="72" align="right" alt="adspay logo" />
+
 # adspay — the client
 
 [![tests](https://github.com/ivaldepablo/adspay/actions/workflows/test.yml/badge.svg)](https://github.com/ivaldepablo/adspay/actions/workflows/test.yml) [![npm](https://img.shields.io/npm/v/adspay.svg)](https://www.npmjs.com/package/adspay)
@@ -15,6 +17,8 @@ This repository is the **client** — the only adspay code that runs on your mac
 | [`statusline/`](statusline) | The npm package `adspay` — the Claude Code status-line client (Node, zero dependencies). |
 | [`vscode/`](vscode) | The VS Code extension source (the higher-paying editor surface). |
 | [`FAQ.md`](FAQ.md) | Honest answers, including the fraud ground rules and "will this read my code?" |
+| [`docs/API.md`](docs/API.md) | The public read-only API — build your own dashboard or verifier. |
+| [`CHANGELOG.md`](CHANGELOG.md) | Version history. |
 
 ## The trust guarantees — and where to verify each in this code
 
