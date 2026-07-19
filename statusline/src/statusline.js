@@ -33,7 +33,7 @@ async function main() {
   }
 
   if (!cfg?.deviceId) {
-    process.stdout.write(prefix || "✶ adspay: ejecuta `npx adspay init`");
+    process.stdout.write(prefix || "✶ adspay: run `npx adspay init`");
     return;
   }
 

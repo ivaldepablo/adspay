@@ -10,6 +10,11 @@ This repository is the **client** — the only adspay code that runs on your mac
 
 > The backend (auction, billing, payouts) is closed source because it moves money and holds secrets — but it can't see anything the client doesn't send, and the client is right here.
 
+<p align="center">
+  <img src="assets/demo.gif" width="820" alt="Installing adspay and previewing the sponsored status line">
+</p>
+<p align="center"><sub>Real session: <code>init</code> registers the device, <code>preview</code> renders the exact line Claude Code will show, <code>verify</code> checks your signed receipts locally.</sub></p>
+
 ## What's in here
 
 | Path | What it is |
@@ -39,6 +44,7 @@ npx adspay init          # registers your device and wires the status line (30s)
 Then, whenever you like:
 
 ```bash
+npx adspay preview            # see the line exactly as Claude Code renders it
 npx adspay wallet <address>   # set your Solana wallet (USDC payouts)
 npx adspay verify             # audit your signed earning receipts locally
 npx adspay off | on           # mute / unmute the ads

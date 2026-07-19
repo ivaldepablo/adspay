@@ -25,7 +25,7 @@ async function init() {
     ({ deviceId, apiKey } = existing);
     readToken = existing.readToken;
     foundingRank = existing.foundingRank ?? null;
-    console.log(`Device ya registrado: ${deviceId}`);
+    console.log(`Device already registered: ${deviceId}`);
   } else {
     // País declarado por el locale (best-effort) para geo-targeting honesto.
     let country;
@@ -38,19 +38,19 @@ async function init() {
       body: JSON.stringify({ surface: "terminal", country }),
     });
     if (!res.ok) {
-      console.error(`Registro falló (${res.status}). ¿ADSPAY_API correcto? (${api})`);
+      console.error(`Registration failed (${res.status}). Is ADSPAY_API correct? (${api})`);
       process.exit(1);
     }
     ({ deviceId, apiKey, readToken, foundingRank } = await res.json());
-    console.log(`Device registrado: ${deviceId}`);
+    console.log(`Device registered: ${deviceId}`);
     if (foundingRank && foundingRank <= 500) {
-      console.log(`🏅 Eres founding device #${foundingRank} — cobras 85% de por vida (el resto cobra 70%).`);
+      console.log(`🏅 You are founding device #${foundingRank} — you earn 85% for life (everyone else earns 70%).`);
     }
   }
 
   let wallet = existing?.wallet;
   if (!wallet) {
-    wallet = await ask("Wallet Solana para cobrar en USDC (enter para configurarla luego): ");
+    wallet = await ask("Solana wallet to get paid in USDC (press enter to set it later): ");
     if (wallet) {
       await fetch(`${api}/v1/wallet`, {
         method: "POST",
@@ -58,7 +58,7 @@ async function init() {
         body: JSON.stringify({ deviceId, apiKey, wallet }),
       }).catch(() => {});
     } else {
-      console.log("Sin wallet: acumulas earnings igualmente; configúrala con `adspay wallet <address>`.");
+      console.log("No wallet yet: you still earn — set it later with `adspay wallet <address>`.");
     }
   }
 
@@ -71,8 +71,8 @@ async function init() {
       settings = JSON.parse(readFileSync(CLAUDE_SETTINGS, "utf8"));
     } catch {
       console.error(
-        `⚠️  ${CLAUDE_SETTINGS} no es JSON válido — no lo toco para no empeorarlo.\n` +
-          `Arréglalo (o bórralo) y vuelve a correr: npx adspay init`
+        `⚠️  ${CLAUDE_SETTINGS} is not valid JSON — leaving it untouched so we don't make it worse.\n` +
+          `Fix it (or delete it) and run again: npx adspay init`
       );
       process.exit(1);
     }
@@ -93,33 +93,33 @@ async function init() {
     pausedUntil: existing?.pausedUntil ?? null,
   });
 
-  console.log(`\n✅ Listo. Abre Claude Code y tu status line empieza a ganar.`);
-  if (previousCommand) console.log(`(Tu statusLine anterior se encadena automáticamente.)`);
-  console.log(`Panel de earnings: https://adspay.fun/me\n`);
+  console.log(`\n✅ Done. Open Claude Code and your status line starts earning.`);
+  if (previousCommand) console.log(`(Your previous statusLine is chained automatically.)`);
+  console.log(`Earnings dashboard: https://adspay.fun/me\n`);
 }
 
 async function setWallet(address) {
   const cfg = readJson(CONFIG_PATH);
-  if (!cfg) { console.error("Ejecuta primero: npx adspay init"); process.exit(1); }
+  if (!cfg) { console.error("Run this first: npx adspay init"); process.exit(1); }
   await fetch(`${cfg.api}/v1/wallet`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ deviceId: cfg.deviceId, apiKey: cfg.apiKey, wallet: address }),
   });
   writeConfig({ ...cfg, wallet: address });
-  console.log(`Wallet configurada: ${address}`);
+  console.log(`Payout wallet set: ${address}`);
 }
 
 function requireConfig() {
   const cfg = readJson(CONFIG_PATH);
-  if (!cfg) { console.error("Ejecuta primero: npx adspay init"); process.exit(1); }
+  if (!cfg) { console.error("Run this first: npx adspay init"); process.exit(1); }
   return cfg;
 }
 
 async function verify() {
   const cfg = requireConfig();
   if (!cfg.readToken) {
-    console.error("Este device no tiene readToken. Vuelve a correr `npx adspay init`.");
+    console.error("This device has no readToken. Run `npx adspay init` again.");
     process.exit(1);
   }
   const { verifyReceipt } = await import("../src/receipt.js");
@@ -130,44 +130,60 @@ async function verify() {
   ]);
   const publicKey = wk?.receipt?.publicKey;
   const receipts = rc?.receipts ?? [];
-  if (!publicKey) { console.error("No pude obtener la clave pública."); process.exit(1); }
+  if (!publicKey) { console.error("Could not fetch the public key."); process.exit(1); }
   if (receipts.length === 0) {
-    console.log("Aún no hay recibos firmados (se firman al minuto de acreditar impresiones).");
+    console.log("No signed receipts yet (they are signed within a minute of impressions being credited).");
     return;
   }
   let okCount = 0, badCount = 0, toYou = 0;
-  console.log(`\nVerificando ${receipts.length} recibo(s) contra la clave pública publicada:\n`);
+  console.log(`\nVerifying ${receipts.length} receipt(s) against the published public key:\n`);
   for (const r of receipts) {
     const res = verifyReceipt(r, publicKey);
     if (res.ok) {
       okCount++; toYou += res.body.netMicroUsd;
-      console.log(`  ✓ firma OK, aritmética OK — ${usd(res.body.netMicroUsd)} para ti`);
+      console.log(`  ✓ signature OK, arithmetic OK — ${usd(res.body.netMicroUsd)} to you`);
     } else {
       badCount++;
-      console.log(`  ✗ FALLÓ: ${res.reasons.join(", ")}`);
+      console.log(`  ✗ FAILED: ${res.reasons.join(", ")}`);
     }
   }
-  console.log(`\n${okCount} verificado(s), ${badCount} fallido(s). Total acreditado: ${usd(toYou)}.`);
-  console.log("Verificado localmente, sin confiar en el servidor de adspay.\n");
+  console.log(`\n${okCount} verified, ${badCount} failed. Total credited: ${usd(toYou)}.`);
+  console.log("Verified locally — no trust in the adspay server required.\n");
   if (badCount > 0) process.exit(1);
 }
 
 function setEnabled(on) {
   const cfg = requireConfig();
   writeConfig({ ...cfg, enabled: on, pausedUntil: on ? null : cfg.pausedUntil ?? null });
-  console.log(on ? "Ads activados." : "Ads desactivados. Reactiva con `adspay on`.");
+  console.log(on ? "Ads enabled." : "Ads disabled. Turn them back on with `adspay on`.");
 }
 
 function pause(hoursArg) {
   const hours = Number(hoursArg);
   if (!Number.isFinite(hours) || hours <= 0) {
-    console.error("Uso: adspay pause <horas>  (p. ej. `adspay pause 2`)");
+    console.error("Usage: adspay pause <hours>  (e.g. `adspay pause 2`)");
     process.exit(1);
   }
   const cfg = requireConfig();
   const pausedUntil = Date.now() + hours * 3600_000;
   writeConfig({ ...cfg, pausedUntil });
-  console.log(`Ads en pausa hasta ${new Date(pausedUntil).toLocaleString()}. Reactiva con \`adspay on\`.`);
+  console.log(`Ads paused until ${new Date(pausedUntil).toLocaleString()}. Resume with \`adspay on\`.`);
+}
+
+/** Renders the status line exactly as Claude Code will, so you can confirm the
+ *  install worked without opening the editor. Same code path, no simulation. */
+async function preview() {
+  requireConfig();
+  const { spawnSync } = await import("node:child_process");
+  const statuslinePath = join(__dirname, "..", "src", "statusline.js");
+  const out = spawnSync(process.execPath, [statuslinePath], {
+    input: JSON.stringify({ session_id: "preview", model: { display_name: "Claude" } }),
+    encoding: "utf8",
+    timeout: 10_000,
+  });
+  console.log("\nThis is what Claude Code shows while the agent thinks:\n");
+  console.log("  \x1b[2m✻ Thinking…\x1b[0m " + (out.stdout || "").trim());
+  console.log("\nEvery 5 seconds it's on screen, you earn. `adspay off` stops it.\n");
 }
 
 const [cmd, arg] = process.argv.slice(2);
@@ -177,15 +193,17 @@ else if (cmd === "off") setEnabled(false);
 else if (cmd === "on") setEnabled(true);
 else if (cmd === "pause") pause(arg);
 else if (cmd === "verify") await verify();
+else if (cmd === "preview") await preview();
 else {
   console.log(
-    "Uso:\n" +
-      "  npx adspay init                configura el statusline\n" +
-      "  npx adspay wallet <address>    fija tu wallet Solana (USDC)\n" +
-      "  npx adspay verify              verifica tus recibos firmados (sin confiar en el server)\n" +
-      "  npx adspay off                 desactiva los ads\n" +
-      "  npx adspay on                  reactiva los ads (quita pausa)\n" +
-      "  npx adspay pause <horas>       pausa los ads N horas"
+    "Usage:\n" +
+      "  npx adspay init                set up the status line\n" +
+      "  npx adspay preview             see the line as Claude Code renders it\n" +
+      "  npx adspay wallet <address>    set your Solana wallet (USDC payouts)\n" +
+      "  npx adspay verify              check your signed receipts (no trust in our server)\n" +
+      "  npx adspay off                 turn ads off\n" +
+      "  npx adspay on                  turn ads back on (clears pause)\n" +
+      "  npx adspay pause <hours>       pause ads for N hours"
   );
   process.exit(cmd ? 1 : 0);
 }

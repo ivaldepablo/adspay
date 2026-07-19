@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-07-19
+
+- New `npx adspay preview` command: renders the status line exactly as Claude Code will,
+  so you can confirm the install worked without opening the editor.
+- All CLI output is now in English.
+- No changes to the wire protocol: the client still sends only
+  `{ deviceId, campaignId, count, tsStart, tsEnd, seq }`.
+
 ## 0.1.0 — 2026-07-10
 
 Initial public release.
