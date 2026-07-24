@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.1 — 2026-07-25
+
+Three ways this client could damage a status line it did not own. All fixed, all
+covered by tests.
+
+- **Multi-line status lines are preserved.** Chaining kept only the first line of
+  the command it replaced, silently deleting the rest. It now keeps every line and
+  appends the ad to the last one, so the ad never costs — or removes — a row.
+- **Reinstalling no longer chains adspay to itself.** The installed command embeds
+  an absolute path, so installing over an npx copy made this client spawn itself on
+  every render until the machine filled with orphaned processes and the status line
+  went blank. adspay commands are now recognised wherever the package lives.
+- **Slow status lines survive.** The 800 ms cap was tighter than the budget Claude
+  Code gives, so status lines that fetch quota over the network were dropped
+  entirely. Raised to 2 s, with the last known output reused for up to 5 minutes if
+  the command starts failing.
+- **`adspay uninstall`** restores the status line you had before and deletes
+  `~/.adspay`. Turning ads off with no previous status line now warns you the row
+  will be blank instead of letting you discover it.
+- A closed output pipe no longer prints a Node stack trace into your terminal.
+- Windows: the previous command runs through the platform shell rather than `sh`.
+- All code comments and error messages are in English.
+
 ## 0.2.0 — 2026-07-19
 
 - New `npx adspay preview` command: renders the status line exactly as Claude Code will,

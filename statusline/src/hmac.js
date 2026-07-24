@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 
-/** Debe producir exactamente la misma firma que convex/hmac.ts (WebCrypto HMAC-SHA256 hex). */
+/** Must produce exactly the same signature as convex/hmac.ts (WebCrypto HMAC-SHA256, hex). */
 export function hmacHex(secret, message) {
   return createHmac("sha256", secret).update(message).digest("hex");
 }

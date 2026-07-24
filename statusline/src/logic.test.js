@@ -3,8 +3,8 @@ import { hmacHex, batchMessage } from "./hmac.js";
 import { initialState, tick, drainBatch, MS_PER_IMPRESSION, BATCH_SIZE } from "./impressions.js";
 import { mergeStatusLine } from "./settings-merge.js";
 
-// RFC 4231 test case 2 — garantiza que la implementación node:crypto
-// produce el mismo HMAC-SHA256 estándar que la WebCrypto del servidor.
+// RFC 4231 test case 2 — proves the node:crypto implementation produces the
+// same standard HMAC-SHA256 as the server's WebCrypto.
 test("hmacHex matches RFC 4231 vector", () => {
   expect(hmacHex("Jefe", "what do ya want for nothing?")).toBe(
     "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"

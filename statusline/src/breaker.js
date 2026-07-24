@@ -1,7 +1,7 @@
-// Circuit breaker: registra el resultado de las últimas invocaciones del
-// statusline en ~/.adspay/breaker.json. Si >50% de las últimas WINDOW fallan,
-// auto-desactiva el render del ad durante TRIP_MS (1h). Así, si el backend está
-// caído o el cliente rompe, dejamos de molestar al usuario sin que él haga nada.
+// Circuit breaker: records how the last status-line runs went in
+// ~/.adspay/breaker.json. If more than half of the last WINDOW runs failed, ads
+// stop rendering for TRIP_MS (1h). So if our backend is down or this client is
+// broken, we get out of the user's way without them having to do anything.
 import { BREAKER_PATH, readJson, writeJson } from "./config.js";
 
 export const WINDOW = 20;
@@ -12,17 +12,17 @@ function emptyState() {
 }
 
 /**
- * Registra un éxito (ok=true) o fallo (ok=false). Mantiene solo los últimos
- * WINDOW resultados. Si el trip anterior ya expiró, arranca ventana limpia.
- * Cuando >50% de una ventana completa falla, dispara el breaker.
- * Devuelve el estado resultante.
+ * Records a success (ok=true) or a failure (ok=false), keeping only the last
+ * WINDOW results. If a previous trip has expired, the window starts clean.
+ * Trips the breaker once more than half of a full window has failed.
+ * Returns the resulting state.
  */
 export function recordOutcome(ok, { path = BREAKER_PATH, now = Date.now() } = {}) {
   const state = readJson(path) ?? emptyState();
   let trippedUntil = state.trippedUntil ?? null;
   let prev = Array.isArray(state.outcomes) ? state.outcomes : [];
 
-  // Trip expirado → borrón y cuenta nueva.
+  // Trip has expired -> clean slate.
   if (trippedUntil && now >= trippedUntil) {
     trippedUntil = null;
     prev = [];
@@ -40,7 +40,7 @@ export function recordOutcome(ok, { path = BREAKER_PATH, now = Date.now() } = {}
   return next;
 }
 
-/** ¿Está el breaker disparado ahora mismo? */
+/** Is the breaker tripped right now? */
 export function isTripped({ path = BREAKER_PATH, now = Date.now() } = {}) {
   const state = readJson(path);
   if (!state?.trippedUntil) return false;

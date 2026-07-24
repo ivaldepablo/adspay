@@ -1,13 +1,13 @@
 export const MS_PER_IMPRESSION = 5000;
 export const BATCH_SIZE = 20;
-export const IDLE_GAP_MS = 5000; // gap mayor entre renders = sesión idle, no cuenta
-export const MAX_BATCH_COUNT = 100; // debe coincidir con convex/fraud.ts
+export const IDLE_GAP_MS = 5000; // a longer gap between renders means an idle session; it does not count
+export const MAX_BATCH_COUNT = 100; // must match convex/fraud.ts
 
 export function initialState(nowMs) {
   return { lastTickAt: nowMs, accumMs: 0, pending: 0, tsStart: null, seq: 0 };
 }
 
-/** Acumula tiempo visible entre invocaciones del statusline y lo convierte en impresiones. */
+/** Accumulates on-screen time between status-line runs and turns it into impressions. */
 export function tick(state, nowMs) {
   const gap = nowMs - state.lastTickAt;
   const s = { ...state };
@@ -24,8 +24,8 @@ export function tick(state, nowMs) {
 }
 
 /**
- * Extrae un batch listo para enviar cuando hay >= BATCH_SIZE impresiones
- * (o >= 1 con force, p. ej. al cambiar de campaña). Devuelve { state, batch|null }.
+ * Pulls out a batch ready to send once there are >= BATCH_SIZE impressions (or
+ * >= 1 with force, e.g. when the campaign changes). Returns { state, batch|null }.
  */
 export function drainBatch(state, nowMs, force = false) {
   if (state.pending < (force ? 1 : BATCH_SIZE)) return { state, batch: null };

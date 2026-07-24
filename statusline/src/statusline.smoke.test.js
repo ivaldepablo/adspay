@@ -22,7 +22,7 @@ function runStatusline(env, stdinJson) {
 }
 
 test("statusline prints the served ad and tracks state", async () => {
-  // Mock del ad server
+  // Stub ad server
   const server = createServer((req, res) => {
     if (req.url.startsWith("/v1/ad")) {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -37,7 +37,7 @@ test("statusline prints the served ad and tracks state", async () => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const port = server.address().port;
 
-  // HOME temporal con config de device
+  // Temporary HOME holding a device config
   const home = mkdtempSync(join(tmpdir(), "adspay-test-"));
   mkdirSync(join(home, ".adspay"), { recursive: true });
   writeFileSync(
@@ -52,7 +52,7 @@ test("statusline prints the served ad and tracks state", async () => {
   expect(out).toContain("Ramp — time is money");
   expect(out).toContain(`http://127.0.0.1:${port}/r?c=c123&d=d1`); // link OSC 8
 
-  // Segunda invocación: usa cache y persiste estado de impresiones
+  // Second run: uses the cache and persists impression state
   const out2 = await runStatusline({ HOME: home }, { session_id: "s1" });
   expect(out2).toContain("Ramp — time is money");
   const state = JSON.parse(readFileSync(join(home, ".adspay", "state.json"), "utf8"));

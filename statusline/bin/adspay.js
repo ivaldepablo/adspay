@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-import { readFileSync, existsSync, copyFileSync } from "node:fs";
+import { readFileSync, existsSync, copyFileSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
-import { CONFIG_PATH, DEFAULT_API, readJson, writeJson, writeConfig } from "../src/config.js";
-import { mergeStatusLine } from "../src/settings-merge.js";
+import { ADSPAY_DIR, CONFIG_PATH, DEFAULT_API, readJson, writeJson, writeConfig } from "../src/config.js";
+import { mergeStatusLine, isOwnCommand } from "../src/settings-merge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLAUDE_SETTINGS = join(homedir(), ".claude", "settings.json");
@@ -27,7 +27,7 @@ async function init() {
     foundingRank = existing.foundingRank ?? null;
     console.log(`Device already registered: ${deviceId}`);
   } else {
-    // País declarado por el locale (best-effort) para geo-targeting honesto.
+    // Country as declared by the locale (best effort) for honest geo-targeting.
     let country;
     try {
       country = (Intl.DateTimeFormat().resolvedOptions().locale.split("-")[1] || "").toUpperCase() || undefined;
@@ -62,7 +62,7 @@ async function init() {
     }
   }
 
-  // Configurar statusLine de Claude Code preservando lo que hubiera.
+  // Point Claude Code's statusLine at us, preserving whatever was there.
   const statuslinePath = join(__dirname, "..", "src", "statusline.js");
   const command = `node "${statuslinePath}"`;
   let settings = {};
@@ -76,7 +76,7 @@ async function init() {
       );
       process.exit(1);
     }
-    // backup una sola vez, antes de modificarlo por primera vez
+    // Back up once, before we touch the file for the first time.
     const backup = `${CLAUDE_SETTINGS}.adspay-backup`;
     if (!existsSync(backup)) copyFileSync(CLAUDE_SETTINGS, backup);
   }
@@ -155,7 +155,50 @@ async function verify() {
 function setEnabled(on) {
   const cfg = requireConfig();
   writeConfig({ ...cfg, enabled: on, pausedUntil: on ? null : cfg.pausedUntil ?? null });
-  console.log(on ? "Ads enabled." : "Ads disabled. Turn them back on with `adspay on`.");
+  if (on) {
+    console.log("Ads enabled.");
+    return;
+  }
+  console.log("Ads disabled. Turn them back on with `adspay on`.");
+  // With no status line of their own, silence means an empty row — worse than
+  // what Claude Code showed before we arrived. Say so rather than let them find
+  // out, and point at the way out.
+  if (!cfg.previousCommand) {
+    console.log("Your status line will now be blank. To remove adspay entirely: `adspay uninstall`.");
+  }
+}
+
+// Puts the statusLine setting back exactly how we found it and removes our local
+// data. Anything that takes over a config file owes the user a clean way out.
+function uninstall() {
+  let settings = null;
+  if (existsSync(CLAUDE_SETTINGS)) {
+    try {
+      settings = JSON.parse(readFileSync(CLAUDE_SETTINGS, "utf8"));
+    } catch {
+      console.error(`⚠️  ${CLAUDE_SETTINGS} is not valid JSON — not touching it. Remove the "statusLine" entry by hand.`);
+      process.exit(1);
+    }
+  }
+
+  if (settings) {
+    const cfg = readJson(CONFIG_PATH);
+    const ours = isOwnCommand(settings.statusLine?.command);
+    if (ours && cfg?.previousCommand) {
+      settings.statusLine = { type: "command", command: cfg.previousCommand };
+      console.log("Restored the status line you had before adspay.");
+    } else if (ours) {
+      delete settings.statusLine;
+      console.log("Removed our status line; Claude Code goes back to its default.");
+    } else {
+      console.log("Your status line is not adspay's — leaving it exactly as it is.");
+    }
+    writeJson(CLAUDE_SETTINGS, settings);
+  }
+
+  rmSync(ADSPAY_DIR, { recursive: true, force: true });
+  console.log("Deleted ~/.adspay. Any balance you already earned is still yours — see https://adspay.fun/me");
+  console.log("Sorry it wasn't a fit. If something broke, we'd genuinely like to know: support@adspay.fun");
 }
 
 function pause(hoursArg) {
@@ -194,6 +237,7 @@ else if (cmd === "on") setEnabled(true);
 else if (cmd === "pause") pause(arg);
 else if (cmd === "verify") await verify();
 else if (cmd === "preview") await preview();
+else if (cmd === "uninstall") uninstall();
 else {
   console.log(
     "Usage:\n" +
@@ -203,7 +247,8 @@ else {
       "  npx adspay verify              check your signed receipts (no trust in our server)\n" +
       "  npx adspay off                 turn ads off\n" +
       "  npx adspay on                  turn ads back on (clears pause)\n" +
-      "  npx adspay pause <hours>       pause ads for N hours"
+      "  npx adspay pause <hours>       pause ads for N hours\n" +
+      "  npx adspay uninstall           restore your status line and delete ~/.adspay"
   );
   process.exit(cmd ? 1 : 0);
 }

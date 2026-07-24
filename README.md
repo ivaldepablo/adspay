@@ -49,6 +49,7 @@ npx adspay wallet <address>   # set your Solana wallet (USDC payouts)
 npx adspay verify             # audit your signed earning receipts locally
 npx adspay off | on           # mute / unmute the ads
 npx adspay pause <hours>      # pause for N hours
+npx adspay uninstall          # restore your previous status line and remove ~/.adspay
 ```
 
 Your credentials live in `~/.adspay/config.json` (written `0600`). Watch your ledger at [adspay.fun/me](https://adspay.fun/me).

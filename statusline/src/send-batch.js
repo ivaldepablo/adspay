@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Enviador de batches (proceso detached). Si falla, devuelve las impresiones al state.
+// Batch sender, run as a detached process. On failure the impressions go back
+// into local state so nothing the developer earned is silently dropped.
 import { CONFIG_PATH, STATE_PATH, readJson, writeJson } from "./config.js";
 import { hmacHex, batchMessage } from "./hmac.js";
 import { assertClean } from "./privacy.js";
@@ -10,7 +11,7 @@ if (!cfg || !payloadArg) process.exit(0);
 
 const { campaignId, count, tsStart, tsEnd, seq } = JSON.parse(payloadArg);
 const body = { deviceId: cfg.deviceId, campaignId, count, tsStart, tsEnd, seq };
-// Barrera de privacidad: nada fuera de la allowlist sale a la red.
+// Privacy barrier: nothing outside the allowlist ever reaches the network.
 assertClean(body);
 const signature = hmacHex(cfg.apiKey, batchMessage(body));
 
@@ -30,6 +31,6 @@ try {
 function requeue() {
   const state = readJson(STATE_PATH);
   if (!state) return;
-  // Las impresiones vuelven a pending; el seq consumido no se reutiliza (anti-replay).
+  // Impressions return to pending; the consumed seq is never reused (anti-replay).
   writeJson(STATE_PATH, { ...state, pending: (state.pending ?? 0) + count });
 }

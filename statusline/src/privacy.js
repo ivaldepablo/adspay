@@ -1,8 +1,8 @@
-// Allowlist de privacidad para el batch de contadores. El único dato que sale
-// del equipo del usuario es el conteo de impresiones firmado; jamás prompts,
-// rutas, contenido ni telemetría. Estos son EXACTAMENTE los campos permitidos:
-// cualquier otro hace fallar el envío de forma explícita (y hay un test que lo
-// prueba, así podemos afirmar "nunca enviamos nada fuera de esta lista").
+// Privacy allowlist for the counter batch. The only thing that ever leaves the
+// user's machine is a signed impression count — never prompts, paths, file
+// contents or telemetry. These are EXACTLY the permitted fields: anything else
+// fails the send loudly, and a test enforces it, which is what lets us claim
+// "we never send anything outside this list" and mean it.
 export const COUNTER_ALLOWED_KEYS = Object.freeze([
   "deviceId",
   "campaignId",
@@ -12,14 +12,14 @@ export const COUNTER_ALLOWED_KEYS = Object.freeze([
   "seq",
 ]);
 
-/** Lanza si `body` contiene cualquier campo fuera de COUNTER_ALLOWED_KEYS. */
+/** Throws if `body` carries any field outside COUNTER_ALLOWED_KEYS. */
 export function assertClean(body) {
   if (!body || typeof body !== "object") {
-    throw new Error("adspay privacy: body de batch inválido");
+    throw new Error("adspay privacy: invalid batch body");
   }
   for (const key of Object.keys(body)) {
     if (!COUNTER_ALLOWED_KEYS.includes(key)) {
-      throw new Error(`adspay privacy: campo no permitido en batch: "${key}"`);
+      throw new Error(`adspay privacy: field not allowed in batch: "${key}"`);
     }
   }
   return body;

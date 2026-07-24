@@ -14,7 +14,7 @@ test("isAdEnabled: off hides the ad", () => {
 
 test("isAdEnabled: pause hides the ad until pausedUntil, then shows again", () => {
   const cfg = { enabled: true, pausedUntil: 5000 };
-  expect(isAdEnabled(cfg, 4999)).toBe(false); // dentro de la pausa
+  expect(isAdEnabled(cfg, 4999)).toBe(false); // still inside the pause
   expect(isAdEnabled(cfg, 5000)).toBe(true);  // pausa expirada
   expect(isAdEnabled(cfg, 9999)).toBe(true);
 });
@@ -37,7 +37,7 @@ test("writeJson honors mode 0600 for secrets (config.json)", () => {
 test("writeJson without mode leaves default perms (not forced to 0600)", () => {
   const path = join(mkdtempSync(join(tmpdir(), "adspay-cfg-")), "plain.json");
   writeJson(path, { a: 1 });
-  // No debe quedar restringido: comprobamos que sigue siendo legible por el dueño.
+  // Must not end up over-restricted: check it is still readable by its owner.
   const mode = statSync(path).mode & 0o600;
   expect(mode & 0o400).toBe(0o400);
 });

@@ -15,7 +15,7 @@ const validBody = {
   formulaVersion: "1.0.0", issuedAt: 1,
 };
 
-test("un recibo bien firmado y con aritmética correcta verifica ok", () => {
+test("a correctly signed receipt with sound arithmetic verifies", () => {
   const { publicKey, privateKey } = generateKeyPairSync("ed25519");
   const pub = publicKey.export({ type: "spki", format: "der" }).toString("base64");
   const res = verifyReceipt(signedReceipt(validBody, privateKey), pub);
@@ -33,13 +33,13 @@ test("firma con otra clave → signatureValid false", () => {
   expect(res.ok).toBe(false);
 });
 
-test("net inflado con firma válida → arithmeticValid false (server deshonesto)", () => {
+test("an inflated net with a valid signature fails arithmetic (dishonest server)", () => {
   const { publicKey, privateKey } = generateKeyPairSync("ed25519");
   const pub = publicKey.export({ type: "spki", format: "der" }).toString("base64");
   const cheating = { ...validBody, netMicroUsd: 19999 };
   const res = verifyReceipt(signedReceipt(cheating, privateKey), pub);
-  expect(res.signatureValid).toBe(true);   // la firma es válida…
-  expect(res.arithmeticValid).toBe(false); // …pero la cuenta no cuadra
+  expect(res.signatureValid).toBe(true);   // the signature is valid...
+  expect(res.arithmeticValid).toBe(false); // ...but the arithmetic does not add up
   expect(res.ok).toBe(false);
 });
 

@@ -18,7 +18,7 @@ test("does not trip while the window is not full", () => {
 test("trips when >50% of the last WINDOW fail", () => {
   const path = tmpPath();
   const now = 1_000_000;
-  // 9 éxitos + 11 fallos = 11/20 > 50%.
+  // 9 successes + 11 failures = 11/20 > 50%.
   for (let i = 0; i < 9; i++) recordOutcome(true, { path, now });
   for (let i = 0; i < 11; i++) recordOutcome(false, { path, now });
   expect(isTripped({ path, now })).toBe(true);
@@ -38,11 +38,11 @@ test("resets after TRIP_MS (1h) and starts a clean window", () => {
   for (let i = 0; i < 20; i++) recordOutcome(false, { path, now: t0 });
   expect(isTripped({ path, now: t0 })).toBe(true);
 
-  // Justo antes de 1h sigue disparado; después ya no.
+  // Still tripped just before the hour is up; no longer after.
   expect(isTripped({ path, now: t0 + TRIP_MS - 1 })).toBe(true);
   expect(isTripped({ path, now: t0 + TRIP_MS })).toBe(false);
 
-  // Un outcome tras la expiración arranca ventana limpia: un único fallo
+  // An outcome after expiry starts a clean window: a single failure
   // (ventana incompleta) no vuelve a disparar.
   recordOutcome(false, { path, now: t0 + TRIP_MS });
   expect(isTripped({ path, now: t0 + TRIP_MS })).toBe(false);

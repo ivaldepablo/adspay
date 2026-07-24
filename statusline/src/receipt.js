@@ -1,7 +1,8 @@
-// Verificación de recibos — espejo puro de convex/receiptFormat.ts. Node stdlib.
-// El dev verifica sus ganancias SIN confiar en el server: (1) la firma Ed25519 es
-// válida contra la clave pública publicada, y (2) la aritmética del payout es
-// reproducible (si el server firmó honesto pero calculó deshonesto, sale false).
+// Receipt verification — a pure mirror of convex/receiptFormat.ts, Node stdlib
+// only. It lets a developer check their earnings WITHOUT trusting our server:
+// (1) the Ed25519 signature is valid against the published public key, and
+// (2) the payout arithmetic is reproducible — so a server that signed honestly
+// but computed dishonestly still fails the check.
 import { createPublicKey, verify as nodeVerify } from "node:crypto";
 
 const BPS_DEN = 10_000;
@@ -21,7 +22,7 @@ function sortDeep(value) {
   return value;
 }
 
-/** ¿Cuadra la aritmética? gross = perImp×count y net = floor(gross×bps/10000). */
+/** Does the arithmetic add up? gross = perImp×count, net = floor(gross×bps/10000). */
 export function checkArithmetic(body) {
   const gross = body.pricePerImpressionMicroUsd * body.count;
   if (gross !== body.grossMicroUsd) return false;
@@ -29,7 +30,7 @@ export function checkArithmetic(body) {
   return net === body.netMicroUsd;
 }
 
-/** Verifica un recibo firmado contra la clave pública (SPKI DER en base64). */
+/** Verifies a signed receipt against the public key (SPKI DER, base64). */
 export function verifyReceipt(receipt, publicKeyB64) {
   const reasons = [];
   let body;

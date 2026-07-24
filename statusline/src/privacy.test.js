@@ -1,7 +1,7 @@
 import { test, expect } from "vitest";
 import { COUNTER_ALLOWED_KEYS, assertClean } from "./privacy.js";
 
-// El payload real construido por send-batch.js.
+// The exact payload send-batch.js builds.
 function realBody() {
   return { deviceId: "d1", campaignId: "c1", count: 20, tsStart: 1, tsEnd: 2, seq: 3 };
 }
@@ -16,13 +16,13 @@ test("the allowlist is exactly the batch fields and is frozen", () => {
     ["campaignId", "count", "deviceId", "seq", "tsEnd", "tsStart"]
   );
   expect(Object.isFrozen(COUNTER_ALLOWED_KEYS)).toBe(true);
-  // Cada campo del payload real está permitido.
+  // Every field of the real payload is allowed.
   for (const k of Object.keys(realBody())) expect(COUNTER_ALLOWED_KEYS).toContain(k);
 });
 
 test("assertClean throws on any forbidden field", () => {
-  expect(() => assertClean({ ...realBody(), prompt: "secreto del usuario" })).toThrow(/prompt/);
-  expect(() => assertClean({ ...realBody(), cwd: "/home/pablo" })).toThrow(/no permitido/);
+  expect(() => assertClean({ ...realBody(), prompt: "the user's secret" })).toThrow(/prompt/);
+  expect(() => assertClean({ ...realBody(), cwd: "/home/pablo" })).toThrow(/not allowed/);
   expect(() => assertClean({ ...realBody(), ip: "1.2.3.4" })).toThrow();
 });
 
