@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CONFIG_PATH, STATE_PATH, CACHE_PATH, PREV_PATH,
-  readJson, writeJson, isAdEnabled,
+  readJson, writeJson, isAdEnabled, withStateLock,
 } from "./config.js";
 import { initialState, tick, drainBatch } from "./impressions.js";
 import { recordOutcome, isTripped } from "./breaker.js";
@@ -133,19 +133,24 @@ async function renderAd(cfg, now, previous) {
     return compose(previous, previous.length ? "" : "✶ adspay");
   }
 
-  // Impression counter + batching.
-  let state = readJson(STATE_PATH) ?? initialState(now);
-  if (state.campaignId && state.campaignId !== cache.campaignId && state.pending > 0) {
-    // Campaign changed: flush what is pending even if it is under 20.
-    const forced = drainBatch(state, now, true);
-    if (forced.batch) sendBatch(cfg, state.campaignId, forced.batch);
-    state = forced.state;
-  }
-  state.campaignId = cache.campaignId;
-  state = tick(state, now);
-  const { state: after, batch } = drainBatch(state, now);
-  if (batch) sendBatch(cfg, cache.campaignId, batch);
-  writeJson(STATE_PATH, after);
+  // Impression counter + batching. Held under a lock because two Claude Code
+  // windows share this file: without it both read the same sequence number, the
+  // server accepted one and rejected the other as a replay, and those impressions
+  // were lost with nothing to show for them.
+  withStateLock(() => {
+    let state = readJson(STATE_PATH) ?? initialState(now);
+    if (state.campaignId && state.campaignId !== cache.campaignId && state.pending > 0) {
+      // Campaign changed: flush what is pending even if it is under 20.
+      const forced = drainBatch(state, now, true);
+      if (forced.batch) sendBatch(cfg, state.campaignId, forced.batch);
+      state = forced.state;
+    }
+    state.campaignId = cache.campaignId;
+    state = tick(state, now);
+    const { state: after, batch } = drainBatch(state, now);
+    if (batch) sendBatch(cfg, cache.campaignId, batch);
+    writeJson(STATE_PATH, after);
+  });
 
   const adText = `✶ ${cache.adLine}`;
   const link = cache.clickUrl ? osc8(adText, `${cfg.api}${cache.clickUrl}`) : adText;

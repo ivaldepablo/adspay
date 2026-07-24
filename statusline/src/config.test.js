@@ -2,7 +2,7 @@ import { test, expect } from "vitest";
 import { statSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeJson, isAdEnabled } from "./config.js";
+import { writeJson, isAdEnabled, withStateLock } from "./config.js";
 
 test("isAdEnabled: on by default (enabled undefined)", () => {
   expect(isAdEnabled({ deviceId: "d1" }, 1000)).toBe(true);
@@ -40,4 +40,25 @@ test("writeJson without mode leaves default perms (not forced to 0600)", () => {
   // Must not end up over-restricted: check it is still readable by its owner.
   const mode = statSync(path).mode & 0o600;
   expect(mode & 0o400).toBe(0o400);
+});
+
+// Two Claude Code windows share ~/.adspay/state.json. Both used to read the same
+// sequence number and send it; the server accepted one and rejected the other as
+// a replay, and those impressions vanished without a trace.
+test("withStateLock lets only one holder into the critical section at a time", () => {
+  const order = [];
+  const outer = withStateLock(() => {
+    order.push("outer");
+    // A second window arriving mid-write must be turned away, not allowed in.
+    const inner = withStateLock(() => { order.push("inner"); return "ran"; }, "skipped");
+    expect(inner).toBe("skipped");
+    return "done";
+  });
+  expect(outer).toBe("done");
+  expect(order).toEqual(["outer"]);
+});
+
+test("withStateLock releases the lock even when the body throws", () => {
+  expect(() => withStateLock(() => { throw new Error("boom"); })).toThrow("boom");
+  expect(withStateLock(() => "free", "blocked")).toBe("free");
 });

@@ -1,6 +1,6 @@
 {
   "name": "adspay",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Get paid in USDC for your Claude Code spinner time \u2014 70% revenue share (85% for the first 500 devices), instant Solana payouts from $1.",
   "type": "module",
   "bin": {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3 — 2026-07-25
+
+- **Two editor windows no longer lose your impressions.** Both shared
+  `~/.adspay/state.json`, read the same sequence number and sent it; the server
+  accepted one and rejected the other as a replay, and those impressions were
+  gone. The counter now runs under a lock.
+- **A mistyped payout wallet is refused up front.** It used to be stored as typed,
+  then fail inside the hourly payout for ever, showing only "failed".
+- `adspay wallet` and `adspay init` both check the address before saving it.
+
 ## 0.2.2 — 2026-07-25
 
 - **A failed send no longer burns your device.** Impressions used to go straight

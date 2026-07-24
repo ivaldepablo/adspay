@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { ADSPAY_DIR, CONFIG_PATH, DEFAULT_API, readJson, writeJson, writeConfig } from "../src/config.js";
 import { mergeStatusLine, isOwnCommand } from "../src/settings-merge.js";
+import { isValidSolanaAddress } from "../src/wallet.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLAUDE_SETTINGS = join(homedir(), ".claude", "settings.json");
@@ -51,6 +52,11 @@ async function init() {
   let wallet = existing?.wallet;
   if (!wallet) {
     wallet = await ask("Solana wallet to get paid in USDC (press enter to set it later): ");
+    if (wallet && !isValidSolanaAddress(wallet)) {
+      console.log(`That doesn't look like a Solana address, so we haven't saved it.`);
+      console.log("You still earn — set it when you have it to hand: `adspay wallet <address>`.");
+      wallet = "";
+    }
     if (wallet) {
       await fetch(`${api}/v1/wallet`, {
         method: "POST",
@@ -101,6 +107,13 @@ async function init() {
 async function setWallet(address) {
   const cfg = readJson(CONFIG_PATH);
   if (!cfg) { console.error("Run this first: npx adspay init"); process.exit(1); }
+  // Catch a mistyped address now. Stored unchecked, it fails silently inside the
+  // hourly payout sweep instead, for ever, showing only "failed".
+  if (!isValidSolanaAddress(address)) {
+    console.error(`Not a Solana address: "${address}"`);
+    console.error("It should be 32-44 characters, base58 (no 0, O, I or l). Copy it from your wallet.");
+    process.exit(1);
+  }
   await fetch(`${cfg.api}/v1/wallet`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
