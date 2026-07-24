@@ -23,11 +23,26 @@ export function tick(state, nowMs) {
   return s;
 }
 
+// Backoff after a failed send, capped. Without this, a single network blip put
+// the client into a loop: the batch went straight back into `pending`, hit the
+// threshold again on the very next render, and got re-sent several times a
+// second. The server saw a flood of stale batches, counted each as a rejection,
+// and the device's TrustRank fell below the earning floor in about a minute —
+// permanently, and invisibly to its owner.
+export const RETRY_BASE_MS = 60_000;
+export const RETRY_MAX_MS = 60 * 60_000;
+export const MAX_SEND_ATTEMPTS = 8;
+
+export function backoffMs(attempts) {
+  return Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** Math.max(0, attempts - 1));
+}
+
 /**
  * Pulls out a batch ready to send once there are >= BATCH_SIZE impressions (or
  * >= 1 with force, e.g. when the campaign changes). Returns { state, batch|null }.
  */
 export function drainBatch(state, nowMs, force = false) {
+  if (state.retryAfter && nowMs < state.retryAfter) return { state, batch: null };
   if (state.pending < (force ? 1 : BATCH_SIZE)) return { state, batch: null };
   const count = Math.min(state.pending, MAX_BATCH_COUNT);
   const batch = {

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.2 — 2026-07-25
+
+- **A failed send no longer burns your device.** Impressions used to go straight
+  back into the queue, trip the batch threshold on the very next render, and get
+  re-sent several times a second. The server counted each stale batch as a
+  rejection, and a device's TrustRank could fall below the earning floor about a
+  minute after one network blip — permanently, with nothing to show its owner.
+  Sends now back off exponentially, stop after 8 attempts, and are never retried
+  for a reason that cannot succeed.
+- **Impressions trimmed by a cap are kept.** The server now reports how many of a
+  batch it paid for, and the rest waits for the next hour instead of being thrown
+  away.
+
 ## 0.2.1 — 2026-07-25
 
 Three ways this client could damage a status line it did not own. All fixed, all

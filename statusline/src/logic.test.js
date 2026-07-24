@@ -1,6 +1,9 @@
 import { test, expect } from "vitest";
 import { hmacHex, batchMessage } from "./hmac.js";
-import { initialState, tick, drainBatch, MS_PER_IMPRESSION, BATCH_SIZE } from "./impressions.js";
+import {
+  initialState, tick, drainBatch, MS_PER_IMPRESSION, BATCH_SIZE,
+  backoffMs, RETRY_BASE_MS, RETRY_MAX_MS, MAX_SEND_ATTEMPTS,
+} from "./impressions.js";
 import { mergeStatusLine } from "./settings-merge.js";
 
 // RFC 4231 test case 2 — proves the node:crypto implementation produces the
@@ -58,4 +61,25 @@ test("mergeStatusLine preserves settings and captures previous command", () => {
   const fresh = mergeStatusLine({}, "node /x/statusline.js");
   expect(fresh.previousCommand).toBeNull();
   expect(fresh.merged.statusLine.command).toBe("node /x/statusline.js");
+});
+
+// A single network blip used to put the client into a hot loop: the batch went
+// back into `pending`, tripped the threshold on the very next render, and was
+// re-sent several times a second. The server counted each stale batch as a
+// rejection and the device's TrustRank fell below the earning floor in about a
+// minute — permanently, and with no sign of it for its owner.
+test("a failed send holds the batch back instead of retrying every render", () => {
+  const now = 1_000_000;
+  const state = { ...initialState(now), pending: 40, retryAfter: now + 60_000 };
+  expect(drainBatch(state, now).batch).toBeNull();
+  expect(drainBatch(state, now + 59_999).batch).toBeNull();
+  expect(drainBatch(state, now + 60_001).batch).not.toBeNull();
+});
+
+test("backoff grows and is capped", () => {
+  expect(backoffMs(1)).toBe(RETRY_BASE_MS);
+  expect(backoffMs(2)).toBe(RETRY_BASE_MS * 2);
+  expect(backoffMs(3)).toBe(RETRY_BASE_MS * 4);
+  expect(backoffMs(99)).toBe(RETRY_MAX_MS);
+  expect(backoffMs(MAX_SEND_ATTEMPTS)).toBeLessThanOrEqual(RETRY_MAX_MS);
 });
