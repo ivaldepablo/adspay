@@ -12,7 +12,7 @@ import {
 } from "./config.js";
 import { initialState, tick, drainBatch } from "./impressions.js";
 import { recordOutcome, isTripped } from "./breaker.js";
-import { toLines, compose } from "./chain.js";
+import { toLines, compose, fitAd } from "./chain.js";
 import { isOwnCommand } from "./settings-merge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -133,6 +133,15 @@ async function renderAd(cfg, now, previous) {
     return compose(previous, previous.length ? "" : "✶ adspay");
   }
 
+  // What actually fits on this row, worked out BEFORE anything is counted.
+  //
+  // The ad is appended to the end of the user's status line, so when the row
+  // overflows the terminal the ad is the first thing cut — and we used to count
+  // and bill the impression anyway, then sign a receipt for it. If it does not
+  // fit, nobody saw it, and nobody is charged for it.
+  const fitted = fitAd(previous, cache.adLine, terminalWidth());
+  if (!fitted.renderable) return compose(previous, "");
+
   // Impression counter + batching. Held under a lock because two Claude Code
   // windows share this file: without it both read the same sequence number, the
   // server accepted one and rejected the other as a replay, and those impressions
@@ -152,9 +161,24 @@ async function renderAd(cfg, now, previous) {
     writeJson(STATE_PATH, after);
   });
 
-  const adText = `✶ ${cache.adLine}`;
-  const link = cache.clickUrl ? osc8(adText, `${cfg.api}${cache.clickUrl}`) : adText;
+  // The hyperlink wraps the already-fitted text: it costs no columns, so applying
+  // it before measuring would be measuring the wrong thing.
+  const link = cache.clickUrl
+    ? osc8(fitted.rendered, `${cfg.api}${cache.clickUrl}`)
+    : fitted.rendered;
   return compose(previous, link);
+}
+
+/**
+ * Columns available on this terminal.
+ *
+ * Claude Code captures our stdout, so `columns` is usually undefined — a pipe has
+ * no width. 80 is the conventional fallback and the width the advertiser preview
+ * is built around, so what we measure against is what they were shown.
+ */
+function terminalWidth() {
+  const cols = process.stdout && process.stdout.columns;
+  return Number.isFinite(cols) && cols > 0 ? cols : 80;
 }
 
 function sendBatch(cfg, campaignId, batch) {

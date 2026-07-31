@@ -21,6 +21,10 @@ function runStatusline(env, stdinJson) {
   });
 }
 
+function homeEnv(home) {
+  return { HOME: home, USERPROFILE: home };
+}
+
 test("statusline prints the served ad and tracks state", async () => {
   // Stub ad server
   const server = createServer((req, res) => {
@@ -48,12 +52,12 @@ test("statusline prints the served ad and tracks state", async () => {
     })
   );
 
-  const out = await runStatusline({ HOME: home }, { session_id: "s1", model: { id: "claude" } });
+  const out = await runStatusline(homeEnv(home), { session_id: "s1", model: { id: "claude" } });
   expect(out).toContain("Ramp — time is money");
   expect(out).toContain(`http://127.0.0.1:${port}/r?c=c123&d=d1`); // link OSC 8
 
   // Second run: uses the cache and persists impression state
-  const out2 = await runStatusline({ HOME: home }, { session_id: "s1" });
+  const out2 = await runStatusline(homeEnv(home), { session_id: "s1" });
   expect(out2).toContain("Ramp — time is money");
   const state = JSON.parse(readFileSync(join(home, ".adspay", "state.json"), "utf8"));
   expect(state.campaignId).toBe("c123");
@@ -64,6 +68,6 @@ test("statusline prints the served ad and tracks state", async () => {
 
 test("statusline degrades gracefully without config", async () => {
   const home = mkdtempSync(join(tmpdir(), "adspay-test-"));
-  const out = await runStatusline({ HOME: home }, {});
+  const out = await runStatusline(homeEnv(home), {});
   expect(out).toContain("npx adspay init");
 });

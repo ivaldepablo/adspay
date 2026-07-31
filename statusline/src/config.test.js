@@ -2,6 +2,7 @@ import { test, expect } from "vitest";
 import { statSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { platform } from "node:os";
 import { writeJson, isAdEnabled, withStateLock } from "./config.js";
 
 test("isAdEnabled: on by default (enabled undefined)", () => {
@@ -31,7 +32,9 @@ test("writeJson honors mode 0600 for secrets (config.json)", () => {
   const path = join(mkdtempSync(join(tmpdir(), "adspay-cfg-")), "config.json");
   writeJson(path, { apiKey: "s".repeat(64) }, { mode: 0o600 });
   const mode = statSync(path).mode & 0o777;
-  expect(mode).toBe(0o600);
+  // Windows does not implement POSIX mode bits; chmod is meaningful on the
+  // Unix systems where 0600 is enforceable. The write itself is still tested.
+  if (platform() !== "win32") expect(mode).toBe(0o600);
 });
 
 test("writeJson without mode leaves default perms (not forced to 0600)", () => {

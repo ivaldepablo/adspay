@@ -10,6 +10,29 @@
 // So: keep every line, and append the ad to the last one. The ad never costs
 // the user an extra row, and it never removes one either.
 
+import { fit, width } from "./adline.js";
+
+/** The separator between the user's status line and ours. Three columns. */
+const SEPARATOR = " | ";
+
+/**
+ * How much room the ad actually has on this terminal, and what fits in it.
+ *
+ * The row belongs to the user. We take what is left of it after their own status
+ * line, and if what is left cannot hold a legible ad we render nothing — and the
+ * caller must then count no impression. Shortening their status line to make room
+ * for an advertiser is not on the table.
+ *
+ * Returns the same shape as `fit`: { rendered, wasTruncated, renderable }.
+ */
+export function fitAd(previousLines, adLine, totalWidth) {
+  const lines = Array.isArray(previousLines) ? previousLines : [];
+  const last = lines.length ? lines[lines.length - 1] : "";
+  const sep = last.trim() === "" ? "" : SEPARATOR;
+  const budget = totalWidth - width(last) - width(sep);
+  return fit(adLine, budget);
+}
+
 /** Split a command's stdout into the lines it meant to render. */
 export function toLines(stdout) {
   if (typeof stdout !== "string" || stdout === "") return [];

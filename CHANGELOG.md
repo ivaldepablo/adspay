@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-07-31
+
+- **An impression is never counted when the ad does not fit.** The client now
+  measures terminal display columns, preserves every character of an existing
+  status line, truncates only the sponsored line, and suppresses billing when
+  the remaining space is too small to be legible.
+- ANSI sequences, OSC 8 links, wide glyphs, combining marks and emoji use the
+  same tested width rules as the ad server and advertiser preview.
+- The Windows smoke suite now isolates the test home directory correctly, while
+  POSIX installs continue to enforce owner-only permissions for API secrets.
+
 ## 0.2.3 — 2026-07-25
 
 - **Two editor windows no longer lose your impressions.** Both shared
